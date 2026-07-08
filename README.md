@@ -53,6 +53,7 @@ cp .env.example .env
 ```
 
 공공데이터포털 API 키가 아직 없어도 `--use-sample` 옵션으로 전체 흐름을 먼저 실행할 수 있습니다.
+`--use-sample` 데이터는 실제 삼성전자/KOSPI 시세가 아니라 실행 흐름 검증용 합성 데이터입니다.
 
 ## 5. 실행 예시
 
@@ -86,6 +87,7 @@ python src/data_pipeline.py --ticker 005930 --start 2018-01-01 --end 2025-12-31
 ## 6. 산출물
 
 - `data/processed/{ticker}_dataset.parquet`: 학습용 feature + label 데이터셋
+- `data/processed/{ticker}_latest_features.parquet`: label 생성 가능 여부와 분리한 최신 예측용 feature 데이터셋
 - `models/{ticker}_model.joblib`: 학습된 모델
 - `reports/model_comparison.md`: 모델 평가 결과
 - `reports/backtest_summary.md`: 단순 백테스트 결과

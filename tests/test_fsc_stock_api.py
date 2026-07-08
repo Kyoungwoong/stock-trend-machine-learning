@@ -51,3 +51,30 @@ def test_normalize_stock_price_items_keeps_required_columns_when_optional_missin
         "change_rate",
     ]:
         assert column in result.columns
+
+
+def test_normalize_stock_price_items_accepts_korean_columns():
+    result = normalize_stock_price_items(
+        [
+            {
+                "기준일자": "20240103",
+                "종목코드": "005930",
+                "종목명": "삼성전자",
+                "시장구분": "KOSPI",
+                "시가": "77,000",
+                "고가": "78,000",
+                "저가": "76,500",
+                "종가": "77,800",
+                "거래량": "10,000",
+                "거래대금": "778,000,000",
+                "상장주식수": "5,969,782,550",
+                "시가총액": "464,000,000,000",
+                "등락률": "1.20",
+            }
+        ]
+    )
+
+    assert result.loc[0, "date"] == pd.Timestamp("2024-01-03")
+    assert result.loc[0, "ticker"] == "005930"
+    assert result.loc[0, "close"] == 77800
+    assert result.loc[0, "change_rate"] == 1.20

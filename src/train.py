@@ -12,11 +12,12 @@ from sklearn.preprocessing import StandardScaler
 
 from config import SETTINGS
 from features import FEATURE_COLUMNS
-from labeling import LABEL_COLUMN
+from labeling import FUTURE_RETURN_COLUMN, LABEL_COLUMN
 from storage import load_parquet, write_report
 
 
 def split_by_date(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    df = df.sort_values("date").reset_index(drop=True)
     train = df[df["date"] < "2024-01-01"].copy()
     valid = df[(df["date"] >= "2024-01-01") & (df["date"] < "2025-01-01")].copy()
     test = df[df["date"] >= "2025-01-01"].copy()
@@ -27,6 +28,13 @@ def split_by_date(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Data
         valid = df.iloc[int(n * 0.7): int(n * 0.85)].copy()
         test = df.iloc[int(n * 0.85):].copy()
     return train, valid, test
+
+
+def validate_feature_columns() -> None:
+    leakage_columns = {LABEL_COLUMN, FUTURE_RETURN_COLUMN}
+    leaked = leakage_columns.intersection(FEATURE_COLUMNS)
+    if leaked:
+        raise ValueError(f"Leakage columns must not be model features: {sorted(leaked)}")
 
 
 def build_models(random_state: int = 42) -> dict[str, Pipeline]:
@@ -56,6 +64,7 @@ def build_models(random_state: int = 42) -> dict[str, Pipeline]:
 
 
 def train(ticker: str) -> None:
+    validate_feature_columns()
     dataset_path = SETTINGS.data_dir / "processed" / f"{ticker}_dataset.parquet"
     df = load_parquet(dataset_path).sort_values("date")
     train_df, valid_df, test_df = split_by_date(df)
@@ -90,14 +99,15 @@ def train(ticker: str) -> None:
             "valid_end": str(valid_df["date"].max().date()),
             "test_start": str(test_df["date"].min().date()),
             "test_end": str(test_df["date"].max().date()),
+            "validation_scores": scores,
         },
         model_path,
     )
 
     content = f"""
-# Model Training Summary
+# Model Comparison
 
-## Split
+## Training Split
 
 | split | rows | start | end |
 |---|---:|---|---|
@@ -105,7 +115,7 @@ def train(ticker: str) -> None:
 | validation | {len(valid_df):,} | {valid_df['date'].min().date()} | {valid_df['date'].max().date()} |
 | test | {len(test_df):,} | {test_df['date'].min().date()} | {test_df['date'].max().date()} |
 
-## Validation accuracy
+## Validation Accuracy
 
 | model | validation accuracy |
 |---|---:|
@@ -119,6 +129,8 @@ def train(ticker: str) -> None:
 
 - validation accuracy는 모델 선택용 참고 지표다.
 - 최종 평가는 `evaluate.py`에서 test set 기준으로 수행한다.
+- `label_up_5d`와 `future_return_5d`는 모델 입력 feature에서 제외했다.
+- split은 날짜 순서를 기준으로 하며 랜덤 shuffle을 사용하지 않는다.
 """
     write_report(SETTINGS.report_dir / "model_comparison.md", content.strip() + "\n")
     print(f"Model saved: {model_path} selected={best_name}")

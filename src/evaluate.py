@@ -28,7 +28,7 @@ def evaluate(ticker: str) -> None:
 
     if hasattr(model, "predict_proba"):
         proba = model.predict_proba(x_test)[:, 1]
-        auc = roc_auc_score(y_test, proba)
+        auc = roc_auc_score(y_test, proba) if y_test.nunique() > 1 else float("nan")
     else:
         proba = pred
         auc = float("nan")
@@ -49,38 +49,46 @@ def evaluate(ticker: str) -> None:
     SETTINGS.report_dir.mkdir(parents=True, exist_ok=True)
     result_df.to_csv(result_path, index=False, encoding="utf-8-sig")
 
-    content = f"""
-# Evaluation Summary
+    training_content = ""
+    report_path = SETTINGS.report_dir / "model_comparison.md"
+    if report_path.exists():
+        training_content = report_path.read_text(encoding="utf-8").strip()
+        training_content = training_content.split("## Test Evaluation", maxsplit=1)[0].strip()
 
-## Model
+    evaluation_content = f"""
+## Test Evaluation
+
+### Model
 
 - ticker: `{ticker}`
 - selected model: `{model_name}`
 - test period: `{test_df['date'].min().date()}` ~ `{test_df['date'].max().date()}`
 
-## Metrics
+### Metrics
 
 | metric | value |
 |---|---:|
 {chr(10).join(f'| {name} | {value:.4f} |' for name, value in metrics.items())}
 
-## Confusion Matrix
+### Confusion Matrix
 
 ```text
 {cm}
 ```
 
-## Prediction file
+### Prediction file
 
 `{result_path}`
 
-## Notes
+### Notes
 
 - ML 지표는 방향성 분류 성능을 보여준다.
 - 실제 투자 성과는 `backtest.py`에서 별도로 확인한다.
+- 평가는 날짜 순서 split의 test 구간에서만 수행한다.
 """
-    write_report(SETTINGS.report_dir / "model_comparison.md", content.strip() + "\n")
-    print(content)
+    content = f"{training_content}\n\n{evaluation_content.strip()}\n" if training_content else evaluation_content.strip() + "\n"
+    write_report(report_path, content)
+    print(evaluation_content)
 
 
 def parse_args() -> argparse.Namespace:

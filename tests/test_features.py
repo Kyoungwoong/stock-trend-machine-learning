@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.features import add_price_features
+from src.features import FEATURE_COLUMNS, add_price_features
 
 
 def test_add_price_features_contains_expected_columns():
@@ -17,3 +17,8 @@ def test_add_price_features_contains_expected_columns():
     assert "ma_60" in result.columns
     assert "market_return_5d" in result.columns
     assert "excess_return_5d" in result.columns
+
+
+def test_feature_columns_do_not_include_label_columns():
+    assert "label_up_5d" not in FEATURE_COLUMNS
+    assert "future_return_5d" not in FEATURE_COLUMNS

@@ -99,7 +99,56 @@ python src/data_pipeline.py --ticker 005930 --start 2018-01-01 --end 2025-12-31
 - `reports/backtest_summary.md`: 단순 백테스트 결과
 - `reports/final_report.md`: 블로그/포트폴리오용 최종 보고서
 
-## 7. 중요한 원칙
+## 7. 디렉토리 구조
+
+초보자가 루트 디렉토리에서 바로 볼 파일은 최소화했습니다.
+
+```text
+.
+├── README.md              # 프로젝트 시작 안내
+├── AGENTS.md              # AI 작업 규칙
+├── CURRENT_TASK.md        # 현재 작업 범위
+├── requirements.txt       # Python 의존성
+├── src/                   # 실행 코드
+├── tests/                 # 테스트 코드
+├── data/                  # raw/interim/processed 데이터
+├── models/                # 학습된 모델
+├── reports/               # 실행 결과 리포트
+├── notebooks/             # 실험용 노트북
+└── docs/                  # 보조 문서 모음
+```
+
+`src/` 하위 구조는 다음처럼 역할별로 나눴습니다.
+
+```text
+src/
+├── data_pipeline.py       # 실행 진입점: 데이터 수집/가공
+├── train.py               # 실행 진입점: 모델 학습
+├── evaluate.py            # 실행 진입점: 모델 평가
+├── backtest.py            # 실행 진입점: 단순 백테스트
+├── predict.py             # 실행 진입점: 최신 예측
+├── core/                  # 설정, 파일 저장/로드 유틸
+├── data_sources/          # 외부 API client
+├── domain/                # feature, label, sample data 생성 로직
+└── pipeline/              # 실제 pipeline 구현
+```
+
+처음 코드를 볼 때는 `src/data_pipeline.py` 같은 실행 파일을 먼저 보고, 세부 구현은 `src/pipeline/`과 `src/domain/`을 따라가면 됩니다.
+
+`docs/` 하위 구조는 다음과 같습니다.
+
+```text
+docs/
+├── project/      # 규칙, 로드맵, 프로젝트 기획 문서
+├── logs/         # 작업 로그
+├── study/        # 공부할 개념과 기술 목록
+├── prompts/      # 에이전트 작업 프롬프트
+└── references/   # API 가이드 등 참고 자료
+```
+
+처음 보는 순서는 `README.md` → `CURRENT_TASK.md` → `docs/study/phase_1_2_study_list.md`를 추천합니다.
+
+## 8. 중요한 원칙
 
 - 미래 데이터가 feature에 섞이면 안 됩니다.
 - 랜덤 train/test split을 쓰지 않습니다.
@@ -107,7 +156,7 @@ python src/data_pipeline.py --ticker 005930 --start 2018-01-01 --end 2025-12-31
 - ML 성능과 투자 수익률은 다릅니다.
 - 이 프로젝트는 교육/분석 목적이며 투자 자문이나 매매 신호 제공이 아닙니다.
 
-## 8. 추천 블로그 시리즈
+## 9. 추천 블로그 시리즈
 
 1. 바이브 코딩으로 주식 예측 ML 프로젝트 시작하기
 2. 공공데이터포털 주식시세 API로 실제 주가 데이터 수집하기

@@ -5,10 +5,10 @@
 먼저 아래 파일을 읽어라.
 
 1. `README.md`
-2. `RULE.md`
+2. `docs/project/RULE.md`
 3. `AGENTS.md`
 4. `CURRENT_TASK.md`
-5. `CODE_REVIEW_RULES.md`
+5. `docs/project/CODE_REVIEW_RULES.md`
 
 현재 목표는 공공/공개 금융 데이터를 활용해 향후 5영업일 주가 방향성을 예측하는 ML 파이프라인을 만드는 것이다.
 

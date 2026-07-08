@@ -167,7 +167,7 @@ python3 -m pytest
 ```
 
 ```text
-6 passed
+7 passed
 ```
 
 확인한 테스트:

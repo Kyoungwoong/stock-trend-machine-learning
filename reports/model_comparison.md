@@ -4,16 +4,16 @@
 
 | split | rows | start | end |
 |---|---:|---|---|
-| train | 1,506 | 2018-03-23 | 2023-12-29 |
-| validation | 262 | 2024-01-01 | 2024-12-31 |
-| test | 256 | 2025-01-01 | 2025-12-24 |
+| train | 928 | 2020-03-27 | 2023-12-28 |
+| validation | 244 | 2024-01-02 | 2024-12-30 |
+| test | 237 | 2025-01-02 | 2025-12-22 |
 
 ## Validation Accuracy
 
 | model | validation accuracy |
 |---|---:|
-| logistic_regression | 0.4313 |
-| random_forest | 0.3931 |
+| logistic_regression | 0.5451 |
+| random_forest | 0.5287 |
 
 ## Selected model
 
@@ -32,23 +32,23 @@
 
 - ticker: `005930`
 - selected model: `logistic_regression`
-- test period: `2025-01-01` ~ `2025-12-24`
+- test period: `2025-01-02` ~ `2025-12-22`
 
 ### Metrics
 
 | metric | value |
 |---|---:|
-| accuracy | 0.4648 |
-| precision | 0.4136 |
-| recall | 0.9192 |
-| f1 | 0.5705 |
-| roc_auc | 0.5045 |
+| accuracy | 0.4473 |
+| precision | 0.5660 |
+| recall | 0.4138 |
+| f1 | 0.4781 |
+| roc_auc | 0.4528 |
 
 ### Confusion Matrix
 
 ```text
-[[ 28 129]
- [  8  91]]
+[[46 46]
+ [85 60]]
 ```
 
 ### Prediction file

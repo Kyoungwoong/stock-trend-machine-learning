@@ -58,9 +58,9 @@ def add_price_features(df: pd.DataFrame) -> pd.DataFrame:
         out["market_return_5d"] = out["index_close"].pct_change(5)
         out["excess_return_5d"] = out["return_5d"] - out["market_return_5d"]
     else:
-        out["market_return_1d"] = pd.NA
-        out["market_return_5d"] = pd.NA
-        out["excess_return_5d"] = pd.NA
+        out["market_return_1d"] = 0.0
+        out["market_return_5d"] = 0.0
+        out["excess_return_5d"] = out["return_5d"]
 
     return out
 

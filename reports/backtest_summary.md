@@ -9,14 +9,14 @@
 
 | metric | value |
 |---|---:|
-| test_rows | 256 |
-| trade_count | 220 |
-| avg_strategy_trade_return | -0.0131 |
-| win_rate | 0.4000 |
-| strategy_total_return_reference | -0.9537 |
-| buy_and_hold_return | -0.5230 |
-| strategy_max_drawdown_reference | -0.9584 |
-| buy_and_hold_max_drawdown | -0.5333 |
+| test_rows | 237 |
+| trade_count | 106 |
+| avg_strategy_trade_return | 0.0078 |
+| win_rate | 0.5660 |
+| strategy_total_return_reference | 1.0591 |
+| buy_and_hold_return | 1.0693 |
+| strategy_max_drawdown_reference | -0.4551 |
+| buy_and_hold_max_drawdown | -0.1467 |
 | trading_cost_per_trade | 0.0015 |
 
 ## Important Notes

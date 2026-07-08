@@ -49,7 +49,6 @@ label = 0  : 향후 5영업일 수익률 <= 0%
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
 ```
 
 공공데이터포털 API 키가 아직 없어도 `--use-sample` 옵션으로 전체 흐름을 먼저 실행할 수 있습니다.
@@ -69,7 +68,7 @@ python src/predict.py --ticker 005930
 
 ### 실제 API 데이터 사용
 
-`.env`에 아래 값을 넣은 후 실행합니다.
+`.env`에 공공데이터포털 인증키를 넣은 후 실행합니다. API 키는 코드에 하드코딩하지 않습니다.
 
 ```text
 DATA_GO_KR_SERVICE_KEY=...
@@ -82,12 +81,19 @@ BOK_ECOS_API_KEY=...
 python src/data_pipeline.py --ticker 005930 --start 2018-01-01 --end 2025-12-31
 ```
 
-> 현재 skeleton에서는 공공데이터포털 주식/지수 API 연동 뼈대만 구현되어 있습니다. 실제 호출은 API 키와 요청 제한, 응답 스키마를 확인하며 보강하세요.
+실제 API 실행 시 공공데이터포털 금융위원회_주식시세정보와 금융위원회_지수시세정보를 호출합니다. 원천 응답은 `data/raw/`, 내부 표준 컬럼명으로 정규화한 데이터는 `data/interim/`, feature/label 학습 데이터는 `data/processed/`에 저장합니다.
+
+공공데이터포털 주식시세정보는 일별 분석용 데이터이며 실시간 매매용 데이터가 아닙니다. 기준일자 다음 영업일 오후 1시 이후 갱신될 수 있으므로 최신일 데이터는 비어 있을 수 있습니다.
+지수시세정보 API 권한이 없거나 호출이 실패하면 주식시세 데이터만으로 파이프라인을 계속 실행하고, 해당 사유를 `reports/data_summary.md`에 기록합니다.
 
 ## 6. 산출물
 
 - `data/processed/{ticker}_dataset.parquet`: 학습용 feature + label 데이터셋
 - `data/processed/{ticker}_latest_features.parquet`: label 생성 가능 여부와 분리한 최신 예측용 feature 데이터셋
+- `data/raw/{ticker}_stock_price.parquet`: 공공데이터포털 주식시세 API 원천 응답
+- `data/interim/{ticker}_stock_price_normalized.parquet`: 내부 표준 컬럼명으로 정규화한 주식시세 데이터
+- `data/raw/kospi_index.parquet`: 공공데이터포털 지수시세 API 원천 응답
+- `data/interim/kospi_index_normalized.parquet`: 내부 표준 컬럼명으로 정규화한 KOSPI 지수 데이터
 - `models/{ticker}_model.joblib`: 학습된 모델
 - `reports/model_comparison.md`: 모델 평가 결과
 - `reports/backtest_summary.md`: 단순 백테스트 결과

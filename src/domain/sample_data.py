@@ -63,13 +63,15 @@ def generate_sample_index(index_name: str, start: str, end: str, seed: int = 7) 
     df = pd.DataFrame(
         {
             "date": dates,
+            "index_code": "KOSPI",
             "index_name": index_name,
-            "index_open": open_,
-            "index_high": high,
-            "index_low": low,
-            "index_close": close,
-            "index_volume": volume,
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+            "trading_value": close * volume,
         }
     )
-    df["index_change_rate"] = df["index_close"].pct_change().fillna(0) * 100
-    return df.round({"index_open": 2, "index_high": 2, "index_low": 2, "index_close": 2})
+    df["change_rate"] = df["close"].pct_change().fillna(0) * 100
+    return df.round({"open": 2, "high": 2, "low": 2, "close": 2, "trading_value": 0})

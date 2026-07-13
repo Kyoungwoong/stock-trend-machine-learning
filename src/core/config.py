@@ -26,7 +26,8 @@ class Settings:
 def get_settings() -> Settings:
     return Settings(
         data_go_kr_service_key=os.getenv("DATA_GO_KR_SERVICE_KEY") or None,
-        krx_auth_key=os.getenv("KRX_AUTH_KEY") or None,
+        # KRX 문서의 명칭(AUTH_KEY)을 우선하되 CURRENT_TASK의 KRX_API_KEY도 허용한다.
+        krx_auth_key=os.getenv("KRX_AUTH_KEY") or os.getenv("KRX_API_KEY") or None,
         dart_api_key=os.getenv("DART_API_KEY") or None,
         bok_ecos_api_key=os.getenv("BOK_ECOS_API_KEY") or None,
         data_dir=Path(os.getenv("DATA_DIR", "data")),

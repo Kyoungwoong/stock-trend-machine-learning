@@ -21,6 +21,9 @@ FEATURE_COLUMNS = [
     "volatility_20d",
     "market_return_1d",
     "market_return_5d",
+    "market_volatility_5d",
+    "market_volatility_20d",
+    "excess_return_1d",
     "excess_return_5d",
 ]
 
@@ -56,10 +59,16 @@ def add_price_features(df: pd.DataFrame) -> pd.DataFrame:
     if "index_close" in out.columns:
         out["market_return_1d"] = out["index_close"].pct_change(1)
         out["market_return_5d"] = out["index_close"].pct_change(5)
+        out["market_volatility_5d"] = out["market_return_1d"].rolling(5).std()
+        out["market_volatility_20d"] = out["market_return_1d"].rolling(20).std()
+        out["excess_return_1d"] = out["return_1d"] - out["market_return_1d"]
         out["excess_return_5d"] = out["return_5d"] - out["market_return_5d"]
     else:
         out["market_return_1d"] = 0.0
         out["market_return_5d"] = 0.0
+        out["market_volatility_5d"] = 0.0
+        out["market_volatility_20d"] = 0.0
+        out["excess_return_1d"] = out["return_1d"]
         out["excess_return_5d"] = out["return_5d"]
 
     return out

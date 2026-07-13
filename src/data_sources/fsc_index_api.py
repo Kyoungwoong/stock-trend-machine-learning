@@ -135,25 +135,26 @@ def normalize_index_items(items: list[dict[str, Any]]) -> pd.DataFrame:
     rename_map = {
         "basDt": "date",
         "idxNm": "index_name",
-        "clpr": "index_close",
-        "vs": "index_change",
-        "fltRt": "index_change_rate",
-        "mkp": "index_open",
-        "hipr": "index_high",
-        "lopr": "index_low",
-        "trqu": "index_volume",
-        "trPrc": "index_trading_value",
+        "clpr": "close",
+        "fltRt": "change_rate",
+        "mkp": "open",
+        "hipr": "high",
+        "lopr": "low",
+        "trqu": "volume",
+        "trPrc": "trading_value",
     }
     df = df.rename(columns=rename_map)
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], format="%Y%m%d", errors="coerce")
 
-    for col in ["index_open", "index_high", "index_low", "index_close", "index_change", "index_change_rate", "index_volume", "index_trading_value"]:
+    for col in ["open", "high", "low", "close", "volume", "trading_value", "change_rate"]:
         if col in df.columns:
             df[col] = _to_numeric(df[col])
 
-    required = ["date", "index_name", "index_open", "index_high", "index_low", "index_close", "index_volume"]
+    df["index_code"] = "KOSPI"
+    df["index_name"] = "KOSPI"
+    required = ["date", "index_code", "index_name", "open", "high", "low", "close", "volume", "trading_value", "change_rate"]
     for col in required:
         if col not in df.columns:
             df[col] = pd.NA
-    return df.sort_values("date").reset_index(drop=True)
+    return df[required].dropna(subset=["date", "close"]).drop_duplicates("date").sort_values("date").reset_index(drop=True)

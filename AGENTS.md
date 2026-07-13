@@ -24,6 +24,9 @@ Always work in the next order.
 4. Leave a command to execute.
 5. Test or verify minimum execution.
 6. Create a summary of the changes.
+7. For each task, please record what you did, how you did it, and why you did it. 
+   1. You want me to create a part where I can study and develop more.
+   2. Record it under docs/log and create a new file for each task.
 
 ## 4. Prohibited matters
 

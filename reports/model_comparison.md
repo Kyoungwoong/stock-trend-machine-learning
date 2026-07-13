@@ -13,7 +13,7 @@
 | model | validation accuracy |
 |---|---:|
 | logistic_regression | 0.5451 |
-| random_forest | 0.5287 |
+| random_forest | 0.5164 |
 
 ## Selected model
 
@@ -42,7 +42,7 @@
 | precision | 0.5660 |
 | recall | 0.4138 |
 | f1 | 0.4781 |
-| roc_auc | 0.4528 |
+| roc_auc | 0.4525 |
 
 ### Confusion Matrix
 

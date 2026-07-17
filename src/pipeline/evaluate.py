@@ -7,6 +7,13 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score
 
 from src.core.config import SETTINGS
+from src.core.run_metadata import (
+    metadata_from_artifact,
+    metadata_markdown,
+    snapshot_run_metadata,
+    update_matching_run_metadata,
+    write_index_mode_comparison,
+)
 from src.core.storage import load_parquet, write_report
 from src.domain.labeling import LABEL_COLUMN
 from src.pipeline.train import split_by_date
@@ -20,6 +27,7 @@ def evaluate(ticker: str) -> None:
     model = artifact["model"]
     feature_columns = artifact["feature_columns"]
     model_name = artifact["model_name"]
+    run_metadata = metadata_from_artifact(artifact)
 
     _, _, test_df = split_by_date(df)
     x_test = test_df[feature_columns]
@@ -41,6 +49,15 @@ def evaluate(ticker: str) -> None:
         "f1": f1_score(y_test, pred, zero_division=0),
         "roc_auc": auc,
     }
+    updated_metadata = update_matching_run_metadata(
+        SETTINGS.report_dir / "run_metadata.json",
+        expected_generated_at=run_metadata["generated_at_utc"],
+        test_accuracy=float(metrics["accuracy"]),
+        test_f1=float(metrics["f1"]),
+        test_roc_auc=float(metrics["roc_auc"]),
+    )
+    snapshot_run_metadata(SETTINGS.report_dir, updated_metadata)
+    write_index_mode_comparison(SETTINGS.report_dir)
 
     result_df = test_df[["date", "ticker", "close", "future_return_5d", LABEL_COLUMN]].copy()
     result_df["prediction"] = pred
@@ -54,10 +71,12 @@ def evaluate(ticker: str) -> None:
     if report_path.exists():
         training_content = report_path.read_text(encoding="utf-8").strip()
         training_content = training_content.split("## Test Evaluation", maxsplit=1)[0].strip()
+    evaluation_context = "" if training_content else metadata_markdown(run_metadata) + "\n\n"
 
     evaluation_content = f"""
 ## Test Evaluation
 
+{evaluation_context}
 ### Model
 
 - ticker: `{ticker}`

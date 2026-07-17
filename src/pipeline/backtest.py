@@ -7,6 +7,13 @@ import numpy as np
 import pandas as pd
 
 from src.core.config import SETTINGS
+from src.core.run_metadata import (
+    metadata_from_artifact,
+    metadata_markdown,
+    snapshot_run_metadata,
+    update_matching_run_metadata,
+    write_index_mode_comparison,
+)
 from src.core.storage import load_parquet, write_report
 from src.pipeline.train import split_by_date
 
@@ -24,6 +31,7 @@ def backtest(ticker: str, trading_cost: float = 0.0015) -> None:
     artifact = joblib.load(model_path)
     model = artifact["model"]
     feature_columns = artifact["feature_columns"]
+    run_metadata = metadata_from_artifact(artifact)
 
     _, _, test_df = split_by_date(df)
     x_test = test_df[feature_columns]
@@ -51,9 +59,22 @@ def backtest(ticker: str, trading_cost: float = 0.0015) -> None:
         "buy_and_hold_max_drawdown": max_drawdown(hold_equity),
         "trading_cost_per_trade": trading_cost,
     }
+    updated_metadata = update_matching_run_metadata(
+        SETTINGS.report_dir / "run_metadata.json",
+        expected_generated_at=run_metadata["generated_at_utc"],
+        backtest_trade_count=int(metrics["trade_count"]),
+        backtest_avg_trade_return=float(metrics["avg_strategy_trade_return"]),
+        backtest_win_rate=float(metrics["win_rate"]),
+        backtest_strategy_return_reference=float(metrics["strategy_total_return_reference"]),
+        backtest_buy_and_hold_return=float(metrics["buy_and_hold_return"]),
+    )
+    snapshot_run_metadata(SETTINGS.report_dir, updated_metadata)
+    write_index_mode_comparison(SETTINGS.report_dir)
 
     content = f"""
 # Backtest Summary
+
+{metadata_markdown(run_metadata)}
 
 ## Rule
 

@@ -11,6 +11,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.core.config import SETTINGS
+from src.core.run_metadata import load_run_metadata, metadata_markdown, write_run_metadata
 from src.core.storage import load_parquet, write_report
 from src.domain.features import FEATURE_COLUMNS
 from src.domain.labeling import FUTURE_RETURN_COLUMN, LABEL_COLUMN
@@ -66,6 +67,10 @@ def build_models(random_state: int = 42) -> dict[str, Pipeline]:
 def train(ticker: str) -> None:
     validate_feature_columns()
     dataset_path = SETTINGS.data_dir / "processed" / f"{ticker}_dataset.parquet"
+    metadata_path = SETTINGS.report_dir / "run_metadata.json"
+    run_metadata = load_run_metadata(metadata_path)
+    if run_metadata.get("ticker") != ticker:
+        raise ValueError(f"Run metadata ticker {run_metadata.get('ticker')} does not match requested ticker {ticker}.")
     df = load_parquet(dataset_path).sort_values("date")
     train_df, valid_df, test_df = split_by_date(df)
 
@@ -85,6 +90,8 @@ def train(ticker: str) -> None:
 
     best_name = max(scores, key=scores.get)
     best_model = fitted_models[best_name]
+    run_metadata["model_selected"] = best_name
+    write_run_metadata(metadata_path, run_metadata)
 
     SETTINGS.model_dir.mkdir(parents=True, exist_ok=True)
     model_path = SETTINGS.model_dir / f"{ticker}_model.joblib"
@@ -100,12 +107,15 @@ def train(ticker: str) -> None:
             "test_start": str(test_df["date"].min().date()),
             "test_end": str(test_df["date"].max().date()),
             "validation_scores": scores,
+            "run_metadata": run_metadata,
         },
         model_path,
     )
 
     content = f"""
 # Model Comparison
+
+{metadata_markdown(run_metadata)}
 
 ## Training Split
 

@@ -5,6 +5,7 @@ import argparse
 import joblib
 
 from src.core.config import SETTINGS
+from src.core.run_metadata import interpretation_warning, metadata_from_artifact
 from src.core.storage import load_parquet
 
 
@@ -15,6 +16,7 @@ def predict_latest(ticker: str) -> None:
     artifact = joblib.load(model_path)
     model = artifact["model"]
     feature_columns = artifact["feature_columns"]
+    run_metadata = metadata_from_artifact(artifact)
 
     source_path = latest_path if latest_path.exists() else dataset_path
     df = load_parquet(source_path).sort_values("date")
@@ -24,8 +26,12 @@ def predict_latest(ticker: str) -> None:
     probability = float(model.predict_proba(x)[:, 1][0]) if hasattr(model, "predict_proba") else float(pred)
 
     direction = "up" if pred == 1 else "not_up"
-    print("date,ticker,prediction,probability,feature_source")
-    print(f"{latest['date'].iloc[0].date()},{ticker},{direction},{probability:.4f},{source_path}")
+    print("date,ticker,prediction,probability,feature_source,market_feature_mode,uses_real_kospi")
+    print(
+        f"{latest['date'].iloc[0].date()},{ticker},{direction},{probability:.4f},{source_path},"
+        f"{run_metadata['market_feature_mode']},{run_metadata['uses_real_kospi']}"
+    )
+    print(f"\nData context: {interpretation_warning(run_metadata)}")
     print("\n주의: 이 출력은 교육용 모델 결과이며 투자 추천이 아닙니다.")
 
 

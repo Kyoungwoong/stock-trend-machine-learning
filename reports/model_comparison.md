@@ -1,5 +1,19 @@
 # Model Comparison
 
+## Data Context
+
+| field | value |
+|---|---|
+| index_source | `fsc` |
+| fallback_applied | `False` |
+| fallback_reason | `None` |
+| index_normalized_rows | `1473` |
+| merged_rows | `1473` |
+| uses_real_kospi | `True` |
+| market_feature_mode | `real_kospi` |
+
+This run used real KOSPI index data. 실제 KOSPI 지수가 날짜 기준으로 결합되었습니다.
+
 ## Training Split
 
 | split | rows | start | end |
@@ -12,8 +26,8 @@
 
 | model | validation accuracy |
 |---|---:|
-| logistic_regression | 0.5451 |
-| random_forest | 0.5164 |
+| logistic_regression | 0.5328 |
+| random_forest | 0.5041 |
 
 ## Selected model
 
@@ -28,6 +42,7 @@
 
 ## Test Evaluation
 
+
 ### Model
 
 - ticker: `005930`
@@ -38,17 +53,17 @@
 
 | metric | value |
 |---|---:|
-| accuracy | 0.4473 |
-| precision | 0.5660 |
-| recall | 0.4138 |
-| f1 | 0.4781 |
-| roc_auc | 0.4525 |
+| accuracy | 0.4599 |
+| precision | 0.5794 |
+| recall | 0.4276 |
+| f1 | 0.4921 |
+| roc_auc | 0.4448 |
 
 ### Confusion Matrix
 
 ```text
-[[46 46]
- [85 60]]
+[[47 45]
+ [83 62]]
 ```
 
 ### Prediction file

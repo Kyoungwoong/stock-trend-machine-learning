@@ -1,5 +1,19 @@
 # Backtest Summary
 
+## Data Context
+
+| field | value |
+|---|---|
+| index_source | `fsc` |
+| fallback_applied | `False` |
+| fallback_reason | `None` |
+| index_normalized_rows | `1473` |
+| merged_rows | `1473` |
+| uses_real_kospi | `True` |
+| market_feature_mode | `real_kospi` |
+
+This run used real KOSPI index data. 실제 KOSPI 지수가 날짜 기준으로 결합되었습니다.
+
 ## Rule
 
 모델이 `상승`이라고 예측한 날만 매수하고, 향후 5영업일 수익률을 거래별 수익률로 계산한다.
@@ -10,12 +24,12 @@
 | metric | value |
 |---|---:|
 | test_rows | 237 |
-| trade_count | 106 |
-| avg_strategy_trade_return | 0.0078 |
-| win_rate | 0.5660 |
-| strategy_total_return_reference | 1.0591 |
+| trade_count | 107 |
+| avg_strategy_trade_return | 0.0077 |
+| win_rate | 0.5794 |
+| strategy_total_return_reference | 1.0470 |
 | buy_and_hold_return | 1.0693 |
-| strategy_max_drawdown_reference | -0.4551 |
+| strategy_max_drawdown_reference | -0.4427 |
 | buy_and_hold_max_drawdown | -0.1467 |
 | trading_cost_per_trade | 0.0015 |
 

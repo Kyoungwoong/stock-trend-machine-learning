@@ -23,6 +23,7 @@ env/
 /reports/*.html
 /reports/*.csv
 /reports/*.json
+/reports/runs/*.json
 
 # notebooks
 .ipynb_checkpoints/

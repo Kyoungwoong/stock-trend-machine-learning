@@ -2,230 +2,234 @@
 
 ## 현재 작업
 
-Phase 1-3. KOSPI 지수 데이터 연동 및 시장 feature 정상화
+Phase 1-4. 실제 KOSPI 지수 데이터 활성화 검증 및 fallback 모델 비교 (완료)
 
 ## 배경
 
-Phase 1-2에서 공공데이터포털 금융위원회 주식시세 API를 연동하여 삼성전자(`005930`) 실제 일별 시세 데이터 기반 파이프라인을 실행했다.
+Phase 1-3에서 KOSPI 지수 데이터 수집 구조를 구현했다.
 
-현재 주식 데이터 수집, feature 생성, label 생성, 학습, 평가, 백테스트, 예측은 정상 동작한다.
+현재 구현 상태는 다음과 같다.
 
-다만 KOSPI 지수 API 호출이 현재 인증키 기준 `403 Forbidden`으로 실패하여, 임시로 stock-only fallback을 적용했다.
+* KOSPI 수집 순서: FSC 지수 API → KRX Open API → stock-only fallback
+* FSC/KRX 응답을 동일한 지수 스키마로 정규화
+* 주식 데이터와 지수 데이터는 `date` 기준 inner join
+* `market_return_1d`, `market_return_5d`
+* `market_volatility_5d`, `market_volatility_20d`
+* `excess_return_1d`, `excess_return_5d`
+* 지수 데이터 실패 시 stock-only fallback 유지
 
-현재 fallback 상태에서는:
+2026-07-17 재검증에서 FSC 지수 API가 정상 응답하여 실제 KOSPI 지수 1,473행이 모델 feature에 반영됐다.
 
-* `market_return_1d = 0.0`
-* `market_return_5d = 0.0`
-* `excess_return_5d = return_5d`
+controlled stock-only baseline과 실제 KOSPI 모델을 같은 기간으로 실행해 `reports/index_mode_comparison.md`에 결과를 기록했다.
 
-로 처리되고 있다.
+이번 작업의 목적은 실제 KOSPI 지수 데이터가 정상 수집되는지 검증하고, 실제 지수 feature가 붙은 모델과 fallback 모델의 차이를 명확히 기록하는 것이다.
 
-이 상태는 파이프라인 유지에는 유용하지만, 시장 대비 종목 움직임을 반영하지 못하므로 다음 단계에서 KOSPI 지수 데이터 연동을 정상화한다.
+## 완료 결과
+
+```text
+index_source = fsc
+index_normalized_rows = 1473
+merged_rows = 1473
+uses_real_kospi = true
+market_feature_mode = real_kospi
+market_feature_validation_passed = true
+```
+
+* stock-only accuracy: `0.4473`
+* real-index accuracy: `0.4599`
+* stock-only F1: `0.4781`
+* real-index F1: `0.4921`
+* stock-only ROC-AUC: `0.4525`
+* real-index ROC-AUC: `0.4448`
+
+단일 시간 분할 결과이므로 실제 지수 feature가 항상 성능을 개선한다고 해석하지 않는다.
 
 ## 목표
 
-삼성전자 일별 시세 데이터에 KOSPI 지수 데이터를 결합하여 시장 feature를 정상 생성한다.
+실제 KOSPI 지수 데이터가 수집 가능한 환경에서는 지수 feature가 정상 생성되어야 한다.
 
-최종적으로 아래 명령어가 실행되어야 한다.
+지수 데이터 수집이 실패하는 환경에서는 fallback이 적용되되, 그 사실이 명확하게 report에 기록되어야 한다.
 
-```bash
-python src/data_pipeline.py --ticker 005930 --start 2018-01-01 --end 2025-12-31
-python src/train.py --ticker 005930
-python src/evaluate.py --ticker 005930
-python src/backtest.py --ticker 005930
-python src/predict.py --ticker 005930
+최종적으로 아래 두 가지 상태를 구분할 수 있어야 한다.
+
+```text
+CASE 1. real-index mode
+- KOSPI 지수 데이터 수집 성공
+- index rows > 0
+- market_return_* 값이 실제 KOSPI 기준으로 생성
+- excess_return_* 값이 종목 수익률 - 시장 수익률로 계산
+
+CASE 2. stock-only fallback mode
+- KOSPI 지수 데이터 수집 실패
+- market_return_* 값은 fallback 처리
+- 결과를 시장 대비 분석으로 해석하지 않도록 report에 경고
 ```
 
 ## 작업 범위
 
-* `src/data_sources/krx_index_api.py`
+* `src/pipeline/data_pipeline.py`
 * `src/data_sources/fsc_index_api.py`
-* `src/data_pipeline.py`
-* `src/features.py`
-* `src/config.py`
+* `src/data_sources/krx_index_api.py`
+* `src/domain/features.py`
+* `src/pipeline/train.py`
+* `src/pipeline/evaluate.py`
+* `src/pipeline/backtest.py`
+* `src/core/storage.py`
 * `reports/data_summary.md`
 * `reports/model_comparison.md`
 * `reports/backtest_summary.md`
-* `README.md`
-* `.env.example`
+* `docs/logs/`
 * `tests/`
-
-기존 주식시세 API 연동과 샘플 데이터 파이프라인은 깨뜨리지 않는다.
 
 ## 구현 요구사항
 
-### 1. 지수 데이터 소스 구조 정리
+### 1. 지수 수집 상태를 명확히 판정한다
 
-KOSPI 지수 데이터를 가져오는 모듈을 명확히 분리한다.
+`data_pipeline.py` 실행 후 다음 상태 중 하나를 명확히 기록한다.
 
-우선순위는 다음과 같다.
+```text
+index_source = fsc
+index_source = krx
+index_source = stock_only_fallback
+```
 
-1. 공공데이터포털 금융위원회 지수시세정보 API
-2. KRX Open API
-3. 권한 또는 API 제한으로 실패할 경우 stock-only fallback 유지
+또한 아래 값을 `reports/data_summary.md`에 기록한다.
 
-가능하면 기존 `src/data_sources/krx_index_api.py` 또는 신규 `src/data_sources/fsc_index_api.py`에 구현한다.
+```text
+stock_raw_rows
+stock_normalized_rows
+index_raw_rows
+index_normalized_rows
+merged_rows
+processed_rows
+index_source
+fallback_applied
+fallback_reason
+dataset_start
+dataset_end
+latest_feature_date
+```
 
-단, 실제 API 권한이 없어서 호출이 실패할 수 있으므로, 실패 시 파이프라인 전체가 중단되지 않게 한다.
+### 2. 실제 KOSPI feature 활성화 여부를 검증한다
 
-### 2. API 키 및 환경변수 정리
+지수 데이터가 정상 수집된 경우 아래 조건을 검증한다.
 
-`.env.example`에 지수 API 관련 환경변수를 추가한다.
+```text
+index_normalized_rows > 0
+market_return_1d가 전부 0.0이 아님
+market_return_5d가 전부 0.0이 아님
+excess_return_1d != return_1d 인 row가 존재
+excess_return_5d != return_5d 인 row가 존재
+```
+
+조건을 만족하지 못하면 실제 지수 feature가 활성화되지 않은 것으로 보고 report에 경고를 남긴다.
+
+### 3. fallback 상태에서는 모델 결과를 명확히 구분한다
+
+지수 데이터가 없는 fallback 상태에서는 `reports/model_comparison.md`와 `reports/backtest_summary.md` 상단에 다음 내용을 포함한다.
+
+```text
+This run used stock-only fallback because KOSPI index data was unavailable.
+Market-relative features are not based on real KOSPI index data.
+Do not interpret this result as a market-relative model comparison.
+```
+
+한국어 설명도 함께 남긴다.
+
+```text
+이번 실행은 KOSPI 지수 데이터가 없어 stock-only fallback으로 수행되었습니다.
+따라서 market_return, excess_return feature는 실제 시장 대비 feature로 해석하면 안 됩니다.
+```
+
+### 4. fallback 모델과 real-index 모델 비교를 위한 run metadata를 저장한다
+
+각 실행 결과에 metadata를 저장한다.
+
+저장 위치 예시:
+
+```text
+reports/run_metadata.json
+```
+
+포함 항목:
+
+```json
+{
+  "ticker": "005930",
+  "start": "2018-01-01",
+  "end": "2025-12-31",
+  "data_mode": "real_api",
+  "index_source": "stock_only_fallback",
+  "fallback_applied": true,
+  "fallback_reason": "FSC index API returned 403 and KRX_AUTH_KEY was not set",
+  "model_selected": "logistic_regression",
+  "test_accuracy": 0.4473,
+  "test_f1": 0.4781,
+  "test_roc_auc": 0.4525
+}
+```
+
+단, API key 값은 절대 저장하지 않는다.
+
+### 5. 지수 데이터 권한 설정 안내를 README에 추가한다
+
+README에 다음 내용을 추가한다.
+
+* `DATA_GO_KR_SERVICE_KEY`는 주식시세 API와 지수시세 API에서 사용할 수 있으나, API별 활용 신청 상태에 따라 403이 발생할 수 있음
+* KRX Open API를 사용하려면 `.env`에 `KRX_AUTH_KEY` 또는 `KRX_API_KEY`를 설정해야 함
+* 지수 데이터가 없으면 stock-only fallback으로 실행됨
+* fallback 결과는 시장 대비 분석으로 해석하면 안 됨
 
 예시:
 
 ```env
-DATA_GO_KR_SERVICE_KEY=your_service_key_here
-KRX_API_KEY=your_krx_api_key_here
+DATA_GO_KR_SERVICE_KEY=your_data_go_kr_service_key
+KRX_AUTH_KEY=your_krx_open_api_auth_key
 ```
 
-공공데이터포털 주식시세 API와 지수시세 API가 같은 인증키를 사용하는 경우에도, 코드와 문서에서 역할을 구분해 설명한다.
+### 6. 실제 지수 데이터 수집 후 재학습 명령어를 문서화한다
 
-API 키는 로그, report, README에 절대 노출하지 않는다.
+README 또는 docs에 아래 흐름을 명시한다.
 
-### 3. 지수 응답 정규화
+```bash
+python3 src/data_pipeline.py --ticker 005930 --start 2018-01-01 --end 2025-12-31
+python3 src/train.py --ticker 005930
+python3 src/evaluate.py --ticker 005930
+python3 src/backtest.py --ticker 005930
+python3 src/predict.py --ticker 005930
+```
 
-지수 API 응답은 내부 표준 컬럼명으로 정규화한다.
-
-최소 표준 컬럼은 다음과 같다.
+그리고 결과 확인 포인트를 명시한다.
 
 ```text
-date
-index_code
-index_name
-open
-high
-low
-close
-volume
-trading_value
-change_rate
+reports/data_summary.md에서 index_source가 fsc 또는 krx인지 확인
+index_normalized_rows가 0보다 큰지 확인
+market_return_* 값이 실제로 생성되었는지 확인
+reports/model_comparison.md에서 fallback 경고가 사라졌는지 확인
 ```
 
-KOSPI 지수는 내부에서 다음 값으로 관리한다.
-
-```text
-index_code = KOSPI
-index_name = KOSPI
-```
-
-날짜는 `datetime`으로 변환하고, 지수 가격/거래량/거래대금 관련 컬럼은 numeric으로 변환한다.
-
-### 4. 저장 경로
-
-원천 지수 데이터는 아래 경로에 저장한다.
-
-```text
-data/raw/kospi_index.parquet
-```
-
-정규화된 지수 데이터는 아래 경로에 저장한다.
-
-```text
-data/interim/kospi_index_normalized.parquet
-```
-
-최종 feature/label dataset은 기존과 동일하게 저장한다.
-
-```text
-data/processed/005930_dataset.parquet
-```
-
-최신 예측용 feature도 기존과 동일하게 저장한다.
-
-```text
-data/processed/005930_latest_features.parquet
-```
-
-### 5. 주식 데이터와 지수 데이터 결합
-
-주식 데이터와 KOSPI 지수 데이터는 `date` 기준으로 결합한다.
-
-원칙은 다음과 같다.
-
-* 주식 거래일과 지수 거래일이 모두 존재하는 날짜만 사용한다.
-* 기본 결합 방식은 `inner join`으로 한다.
-* 결합 후 날짜 오름차순으로 정렬한다.
-* 결합 후 row 수가 줄어든 경우 `reports/data_summary.md`에 기록한다.
-* 지수 데이터가 없거나 API 호출이 실패하면 기존 stock-only fallback을 유지한다.
-
-### 6. 시장 feature 생성
-
-지수 데이터가 정상 결합되면 아래 feature를 생성한다.
-
-```text
-market_return_1d
-market_return_5d
-market_volatility_5d
-market_volatility_20d
-excess_return_1d
-excess_return_5d
-```
-
-정의는 다음과 같다.
-
-```text
-market_return_1d = KOSPI close 기준 1영업일 수익률
-market_return_5d = KOSPI close 기준 5영업일 수익률
-excess_return_1d = stock_return_1d - market_return_1d
-excess_return_5d = stock_return_5d - market_return_5d
-```
-
-주의:
-
-* `excess_return_5d`는 과거 5영업일 기준 feature여야 한다.
-* label 생성에 사용하는 `future_return_5d`와 혼동하면 안 된다.
-* 미래 KOSPI 수익률을 feature에 넣으면 데이터 누수다.
-
-### 7. fallback 정책 유지
-
-지수 API가 실패하는 경우 파이프라인은 중단하지 않는다.
-
-대신 아래 내용을 명확히 기록한다.
-
-* 지수 API 호출 실패 여부
-* 실패 원인
-* stock-only fallback 적용 여부
-* market feature가 0.0 또는 종목 수익률 기준으로 대체되었는지 여부
-
-`reports/data_summary.md`에는 다음 문구를 포함한다.
-
-```text
-KOSPI index data was unavailable, so stock-only fallback was applied. Market return features should not be interpreted as real market-relative features in this run.
-```
-
-### 8. README 업데이트
-
-README에 다음 내용을 추가한다.
-
-* KOSPI 지수 데이터가 왜 필요한지
-* 지수 API 권한이 없을 때 fallback이 어떻게 동작하는지
-* `market_return_*`, `excess_return_*` feature의 의미
-* 지수 데이터가 없는 상태의 모델 결과는 시장 대비 분석으로 해석하면 안 된다는 점
-
-### 9. 테스트 추가
+### 7. 테스트를 추가한다
 
 아래 테스트를 추가하거나 보강한다.
 
-* 지수 데이터가 있을 때 주식 데이터와 `date` 기준으로 정상 결합되는지
-* 지수 데이터가 없을 때 stock-only fallback이 유지되는지
-* `market_return_1d`, `market_return_5d`가 과거 데이터로만 계산되는지
-* `future_return_5d`, `label_up_5d`가 feature 컬럼에 포함되지 않는지
-* 지수 API 실패 시 API 키가 로그에 노출되지 않는지
+* 지수 데이터가 있을 때 `index_source`가 `fsc` 또는 `krx`로 기록되는지
+* 지수 데이터가 없을 때 `index_source`가 `stock_only_fallback`으로 기록되는지
+* fallback 적용 시 report에 경고 문구가 포함되는지
+* 실제 지수 데이터가 있을 때 `market_return_1d`, `market_return_5d`가 0으로만 채워지지 않는지
+* `run_metadata.json`에 API key가 저장되지 않는지
+* `future_return_5d`, `label_up_5d`가 feature column에 포함되지 않는지
 
 ## 완료 기준
 
-* KOSPI 지수 API 클라이언트 또는 fallback 가능한 지수 데이터 수집 구조 구현
-* `data/raw/kospi_index.parquet` 생성 가능
-* `data/interim/kospi_index_normalized.parquet` 생성 가능
-* 주식 데이터와 지수 데이터가 `date` 기준으로 결합 가능
-* `market_return_1d`, `market_return_5d`, `excess_return_1d`, `excess_return_5d` 생성
-* 지수 데이터가 없어도 기존 stock-only 파이프라인 정상 실행
-* `python3 -m pytest` 통과
-* README에 지수 데이터와 fallback 정책 설명 추가
-* `reports/data_summary.md`에 지수 데이터 수집 여부와 결합 결과 기록
-* `reports/model_comparison.md` 갱신
-* `reports/backtest_summary.md` 갱신
+* `reports/data_summary.md`에서 지수 수집 상태가 명확히 확인 가능
+* `reports/run_metadata.json` 생성
+* fallback 여부와 원인이 report에 기록
+* 실제 KOSPI 지수 데이터 수집 성공 시 real-index mode로 판정
+* 지수 수집 실패 시 stock-only fallback mode로 판정
+* fallback 상태의 모델 리포트에 해석 주의 문구 포함
+* README에 지수 API 권한 및 `.env` 설정 방법 추가
+* `python3 -m pytest -q` 통과
+* 기존 sample pipeline 유지
 
 ## 실행 확인 명령어
 
@@ -268,26 +272,29 @@ python3 src/predict.py --ticker 005930
 ### 테스트
 
 ```bash
-python3 -m pytest
+python3 -m pytest -q
+python3 -m compileall -q src tests
 ```
 
 ## 주의사항
 
-* 지수 데이터 권한 문제를 코드로 숨기지 않는다.
-* API 호출 실패를 조용히 무시하지 않는다.
-* 단, 지수 데이터 실패 때문에 전체 파이프라인이 중단되지는 않게 한다.
-* stock-only fallback은 임시 처리임을 report와 README에 명시한다.
-* 미래 지수 수익률을 feature에 사용하지 않는다.
-* `future_return_5d`, `label_up_5d`는 모델 feature에서 제외한다.
-* 랜덤 split을 사용하지 않는다.
+* API key를 report, log, README, metadata에 노출하지 않는다.
+* 지수 데이터 실패를 조용히 숨기지 않는다.
+* fallback은 허용하되 fallback 결과를 실제 시장 대비 모델로 해석하지 않는다.
+* 모델 성능이 낮다고 해서 feature를 과도하게 추가하지 않는다.
+* LightGBM, XGBoost, PyTorch는 이번 작업에서 도입하지 않는다.
+* KOSPI 대형주 20개 확장은 이번 작업에서 하지 않는다.
+* walk-forward validation은 다음 단계 후보로 남긴다.
+* `future_return_5d`, `label_up_5d`는 모델 입력 feature에서 제외한다.
+* 날짜 기준 split을 유지한다.
+* `train_test_split(shuffle=True)`는 사용하지 않는다.
 * 투자 추천 문구를 작성하지 않는다.
-* 모델 성능이 낮아도 임의로 feature를 과도하게 추가하지 않는다.
 
 ## 다음 작업 후보
 
-1. 실제 API 수집 기간이 2020년 이후부터 반환되는 이유 확인
-2. Parquet cache 구조 개선
+1. KRX 장기 일별 호출을 위한 Parquet cache 및 증분 수집
+2. 실제 KOSPI 지수 feature 기반 모델과 fallback 모델 성능 비교
 3. walk-forward validation 추가
-4. KOSPI 대형주 20개로 종목 범위 확장
+4. 데이터 품질 검증 리포트 자동화
 5. LightGBM 또는 XGBoost baseline 추가
-6. 데이터 품질 검증 리포트 자동화
+6. KOSPI 대형주 20개 확장

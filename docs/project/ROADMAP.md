@@ -9,23 +9,23 @@
 
 ## Phase 1. 단일 종목 OHLCV 기반 모델
 
-- [ ] 공공데이터포털 주식시세 API 키 발급
-- [ ] 삼성전자 `005930` 일별 시세 수집
-- [ ] KOSPI 지수 일별 시세 수집
-- [ ] 종목/지수 데이터 병합
-- [ ] 5영업일 label 생성
-- [ ] 기본 feature 생성
-- [ ] LogisticRegression 학습
-- [ ] RandomForest 학습
-- [ ] 시간 순서 기반 평가
-- [ ] 모델 예측 결과 저장
+- [x] 공공데이터포털 주식시세 API 키 발급
+- [x] 삼성전자 `005930` 일별 시세 수집
+- [x] KOSPI 지수 일별 시세 수집
+- [x] 종목/지수 데이터 병합
+- [x] 5영업일 label 생성
+- [x] 기본 feature 생성
+- [x] LogisticRegression 학습
+- [x] RandomForest 학습
+- [x] 시간 순서 기반 평가
+- [x] 모델 예측 결과 저장
 
 ## Phase 2. 백테스트와 검증 강화
 
-- [ ] 단순 매수/매도 규칙 정의
-- [ ] 거래비용 반영
-- [ ] buy-and-hold 비교
-- [ ] confusion matrix와 수익률 비교
+- [x] 단순 매수/매도 규칙 정의
+- [x] 거래비용 반영
+- [x] buy-and-hold 비교
+- [x] confusion matrix와 수익률 비교
 - [ ] walk-forward validation 추가
 
 ## Phase 3. 종목군 확장

@@ -161,7 +161,17 @@ docs/
 └── references/   # API 가이드 등 참고 자료
 ```
 
-처음 보는 순서는 `README.md` → `CURRENT_TASK.md` → `docs/study/phase_1_2_study_list.md`를 추천합니다.
+### 백엔드 개발자를 위한 코드 학습 순서
+
+Python과 머신러닝이 익숙하지 않다면 다음 순서로 읽는 것을 추천합니다.
+
+1. `docs/architecture/current_architecture.md`: 현재 코드 계층과 데이터 흐름 다이어그램
+2. `docs/study/phase_1_5_pipeline_execution_flow_study.md`: main 위치와 전체 실행·데이터 흐름
+3. `docs/study/phase_1_5_code_guide_study.md`: 계층별 파일 역할과 핵심 함수
+4. `docs/study/phase_1_5_ml_concepts_roadmap_study.md`: 현재 ML 개념과 다음 학습 순서
+5. `docs/study/phase_1_2_study_list.md`: API와 금융 데이터 관련 추가 공부 목록
+
+처음 코드를 직접 따라갈 때는 첫 문서를 옆에 두고 `src/data_pipeline.py`에서 시작하면 됩니다.
 
 ## 8. 중요한 원칙
 
